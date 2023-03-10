@@ -1,0 +1,87 @@
+{% comment %} 
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/cadastro.css">
+    <link rel="stylesheet" href="{% static 'cadastro.css' %}">
+    <title>Cadastro</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container-cadastro">
+            <form method="POST">{%csrf_token%}
+                <h1>Cadastro</h1>
+                <p>Nome</p>
+                <input type="text" placeholder="Nome">
+                <br>
+                <p>Sobrenome</p>
+                <input type="text" placeholder="Sobrenome">
+                <br>
+                <p>Cpf</p>
+                <input type="tel" placeholder="Cpf">
+                <br>
+                <p>Email</p>
+                <input type="email" placeholder="E-mail">
+                <br>
+                <p>Logradouro</p>
+                <input type="email" placeholder="Logradouro">
+                <br>
+                <p>Número</p>
+                <input type="number" placeholder="Número">
+                <br>
+                <p>Bairro</p>
+                <input type="text" placeholder="Bairro">
+                <br>
+                <p>Cidade</p>
+                <input type="text" placeholder="Cidade">
+                <br>
+                <div class="btn-cadastro">
+                    <a href=""><button>Cadastrar</button></a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html> {% endcomment %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'cadastro.css' %}">
+    <title>Cadastro</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container-cadastro">
+            <form method="post">
+                {% csrf_token %}
+                <h1>Primeiro Acesso</h1>
+                <br>
+                {% for field in form %}
+                <p>
+                    {{ field.errors }}
+                    {{ field.label_tag }}
+                </p>
+                {{ field }}
+                <br>
+                {% endfor %}
+                <div class="btn-cadastro">
+                    <a href=""><button type="submit">Cadastrar</button></a>
+                </div>
+                {% comment %} <input type="submit" value="Send message"> {% endcomment %}
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen'>
+    <script src='main.js'></script>
+</head>
+<body>
+    <h3>DASHBOARD</h3>
+    {% if user.is_authenticated %}
+    <p>Welcome, {{ user.get_username }}. Thanks for logging in.</p>
+    <a href=''>Change password</a>
+    {% else %}
+    <p>Welcome, new user. Please log in.</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <h1>Solicitação de férias</h1>
+        <br>
+        {% for field in form %}
+        <p>
+            {{ field.errors }}
+            {{ field.label_tag }}
+        </p>
+        {{ field }}
+        <br>
+        {% endfor %}
+        <div class="btn-cadastro">
+            <a href=""><button type="submit">Registrar Solicitação</button></a>
+        </div>
+    </form>
+</body>
+</html>

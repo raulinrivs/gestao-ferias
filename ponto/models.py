@@ -1,12 +1,17 @@
 from django.db import models
 import datetime
 from django.contrib.auth.models import Group
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 
 class CustomUser(AbstractUser):
         matricula = models.CharField(max_length=15, verbose_name='Matricula', unique=True)
         data_admissao = models.DateField(verbose_name='Data de admissão', default=datetime.date.today())
         gestor = models.ManyToManyField(Group, blank=True)
+        data_senha = models.DateField(verbose_name='Data da ultima troca de senha', default=datetime.date.today())
+        
+# class CustomUserManager(UserManager):
+#         def create_user(self, username: str, email: Optional[str] = ..., password: Optional[str] = ..., **extra_fields: Any) -> _T:
+#                 return super().create_user(username, email, password, **extra_fields)
         
 
 class Solicitacao(models.Model):

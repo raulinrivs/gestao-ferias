@@ -1,15 +1,16 @@
+from base64 import urlsafe_b64encode
+from django.utils.encoding import force_bytes
 from django.shortcuts import redirect, render
-from django.contrib import messages
 from datetime import datetime, time, timedelta, date
 from config import settings
 from ponto.forms import RegisterForm, LoginForm, SolicitacaoForm
 from django.views.generic.edit import FormView
 from django.views.generic import TemplateView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from ponto.models import CustomUser, Solicitacao
-from django.contrib.auth import authenticate
-from django.core.mail import send_mail
 
+from ponto.models import CustomUser as User, Solicitacao, Group as Setor
+from random import choice
+import string
 
 class RegisterView(FormView):
     template_name = 'registration/register.html'
@@ -17,38 +18,47 @@ class RegisterView(FormView):
     success_url = '/login/'
 
     def form_valid(self, form):
-        print(form.cleaned_data)
-        CustomUser.objects.create_user(
-            username = form.cleaned_data['matricula'],
-            password = '12345678',
-            matricula = form.cleaned_data['matricula'],
-            email = form.cleaned_data['email'],
-        )
-        form.send_email()
+        senha = ''
+        for i in range(8):
+            senha += choice(string.ascii_letters + string.digits)
+        # User.objects.create_user(
+        #     username = form.cleaned_data['matricula'],
+        #     password = senha,
+        #     matricula = form.cleaned_data['matricula'],
+        #     email = form.cleaned_data['email'],
+        # )
+        form.send_email(senha)
         return super().form_valid(form)
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     login_url = '/login/'
     redirect_field_name = 'redirect_to'
     template_name = 'dashboard.html'
+            
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+        #Intervalo desde a ultuma troca de senha
+        if user.is_authenticated:
+            context['intervalo_senha'] = date.today() - user.data_senha
         context['groups'] = user.groups.all()
+        gestor = user.gestor.all()
+        
         #Solicitações organizadas com prioridade as que foram aprovadas pelo Gestor
         if user.groups.filter(name='Recursos Humanos').exists():
             context['rh_dashboard'] = \
                 Solicitacao.objects.all()
+                
         #Solicitações que são do Setor de responsabilidade do Gestor
-        elif user.gestor:
+        if gestor:
             for group in user.groups.all():
                 solicitacoes = Solicitacao.objects.filter(solicitante__groups=group)
             context['gestor_dashboard'] = solicitacoes
-        else:
-            #Solicitações que estão no nome do colaborador
-            context['colaborador_dashboard'] = \
-                Solicitacao.objects.filter(solicitante=user)
+            
+        #Solicitações que estão no nome do colaborador
+        context['colaborador_dashboard'] = \
+            Solicitacao.objects.filter(solicitante=user)
         return context
     
 class SolicitacaoView(LoginRequiredMixin, FormView):
@@ -62,21 +72,11 @@ class SolicitacaoView(LoginRequiredMixin, FormView):
         # 12 Meses de serviço (Precisa do User -> views.py)
         if tempo_servico.days < 365:
             pass
+        
         # Impedir criação se tiver menos de 30 dias para vencimento de ferias(Precisa do User -> views.py)
-        elif tempo_servico.days > 700:
+        if tempo_servico.days > 700:
             pass 
-        # Contingente (Pensar futuramente)
-        # Construção intervalo
-        # intervalos = {
-        #     'data_inicial_1': form.cleaned_data['data_inicial_1'].strftime('%d/%m/%Y'),
-        #     'data_final_1':  form.cleaned_data['data_final_1'].strftime('%d/%m/%Y'),
-        #     'data_inicial_2': form.cleaned_data['data_inicial_2'],
-        #     'data_final_2': form.cleaned_data['data_final_2'],
-        #     'data_inicial_3': form.cleaned_data['data_inicial_3'],
-        #     'data_final_3': form.cleaned_data['data_final_3'],
-        #     'data_inicial_venda': form.cleaned_data['data_inicial_venda'],
-        #     'data_final_venda': form.cleaned_data['data_final_venda'],
-        # }
+            
         intervalos = {
             'data_inicial_1': form.cleaned_data['data_inicial_1'].strftime('%d/%m/%Y'),
             'data_final_1':  form.cleaned_data['data_final_1'].strftime('%d/%m/%Y'),
@@ -96,14 +96,8 @@ class SolicitacaoView(LoginRequiredMixin, FormView):
             intervalos=intervalos,
             solicitante=self.request.user,
         )
+        form.send_email(self.request.user)
         return super().form_valid(form)
-    
-    def send_email(self):
-        subject = 'Senha Ponto'
-        message = f'Senha: 12345678'
-        email_from = settings.EMAIL_HOST_USER
-        recipient_list = ['pipecy@getnada.com',]
-        send_mail(subject, message, email_from, recipient_list)
         
 
 class SolicitacaoDetailView(LoginRequiredMixin, DetailView):

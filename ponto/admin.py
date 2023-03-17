@@ -19,7 +19,7 @@ class CustomUserAdmin(UserAdmin):
                 )
         }),
         ('Important dates', {
-            'fields': ('last_login', 'date_joined', 'data_admissao')
+            'fields': ('last_login', 'date_joined', 'data_admissao', 'data_senha')
         }),
     )
 

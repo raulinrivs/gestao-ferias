@@ -39,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ponto',
+    'api',
+    'rest_framework',
+    'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
@@ -134,6 +137,13 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'mr.mraulino@gmail.com'
-EMAIL_HOST_PASSWORD = 'ffnkghhyykpaqaxm'
+EMAIL_HOST_PASSWORD = 'kxlspbbkxaexelrf'
 
 LOGIN_REDIRECT_URL = '/dashboard'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ]
+}

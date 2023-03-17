@@ -12,20 +12,26 @@
     <h3>DASHBOARD</h3>
     {% if user.is_authenticated %}
     <p>Welcome, {{ user.get_username }}. Thanks for logging in.</p>
+    <p>Ultima troca de senha: {{ intervalo_senha.days }} dias atras.</p>
     <a href=''>Change password</a>
     {% else %}
     <p>Welcome, new user. Please log in.</p>
+    <p>Solicitações do colaborador</p>
     {% endif %}
     {% if colaborador_dashboard %}
         {% for solicitacao in colaborador_dashboard %}
             <a href="{% url 'solicitacao_detail' solicitacao.id %}">{{ solicitacao }}</a>
         {% endfor %}
     {% endif %}
+    <br>
+    <p>Solicitações do RH</p>
     {% if rh_dashboard %}
         {% for solicitacao in rh_dashboard %}
             <a href="{% url 'solicitacao_detail' solicitacao.id %}">{{ solicitacao }}</a>
         {% endfor %}
     {% endif %}
+    <br>
+    <p>Solicitações do Gestor</p>
     {% if gestor_dashboard %}
         {% for solicitacao in gestor_dashboard %}
             <a href="{% url 'solicitacao_detail' solicitacao.id %}">{{ solicitacao }}</a>

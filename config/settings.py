@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'rest_framework_swagger',
+    'django_rest_passwordreset',
 ]
 
 MIDDLEWARE = [
@@ -144,6 +145,5 @@ LOGIN_REDIRECT_URL = '/dashboard'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ]
 }

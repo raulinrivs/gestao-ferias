@@ -1,17 +1,24 @@
 #Django Imports
+from django.core.mail import send_mail
+from django.contrib.sites.shortcuts import get_current_site
+# from django.urls import reverse
+from django.utils.encoding import force_bytes, smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.encoding import force_bytes
-from django.contrib.auth.models import UserManager
 #REST Framework Imports
-from rest_framework import viewsets, generics, permissions, authentication, mixins
+from rest_framework import viewsets, generics, permissions, authentication, mixins, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.reverse import reverse
 #API app Imports
-from api.serializers import UserSerializer, SolicitacaoSerializer, SetorSerializer, ChangePasswordSerializer, EmailSerializer, CreateUserSerializer
+from api.serializers import UserSerializer, SolicitacaoSerializer, SetorSerializer, ChangePasswordSerializer, RestPasswordRequestSerializer, CreateUserSerializer, SetNewPasswordSerializer
+from config import settings
 #PONTO app Imports
 from ponto.models import Group as Setor, CustomUser as User, Solicitacao
 #General Imports
 from random import choice
 import string
-from base64 import urlsafe_b64encode
+from base64 import urlsafe_b64encode, urlsafe_b64decode
+from config import settings
 
 
 class SetorViewSet(viewsets.ModelViewSet):
@@ -30,12 +37,6 @@ class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
-    def create(self, request, *args, **kwargs):
-        senha = ''
-        for i in range(8):
-            senha += choice(string.ascii_letters + string.digits)
-        print(senha)
-        return super().create(request, *args, **kwargs)
 
 class CreateUserViewSet(mixins.CreateModelMixin,
                         viewsets.GenericViewSet):
@@ -84,29 +85,87 @@ def password_generator():
 
 
 class ChangePasswordView(generics.UpdateAPIView):
-    queryset = User.objects.all()
-    permission_classes = permissions.IsAuthenticated
     serializer_class = ChangePasswordSerializer
+    model = User
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self, queryset=None):
+        obj = self.request.user
+        return obj
+
+    def update(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            self.object.set_password(serializer.data.get("new_password"))
+            self.object.save()
+            response = {
+                'status': 'success',
+                'code': status.HTTP_200_OK,
+                'message': 'Password updated successfully',
+                'data': []
+            }
+            return Response(response)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ResetPasswordView(generics.GenericAPIView):
-    serializer_class = EmailSerializer
+    serializer_class = RestPasswordRequestSerializer
     
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            try:
+                email = serializer.validated_data.get('email')
+                user = User.objects.filter(email=email).first()
+                if user:
+                    uidb64 = urlsafe_b64encode(force_bytes(user.id))
+                    token = PasswordResetTokenGenerator().make_token(user)
+                    relative_link = reverse('password_reset_confirm', kwargs={'uidb64': smart_str(uidb64), 'token': token})
+                    current_site = get_current_site(
+                        request=request).domain
+                    absolute_url = f'http://{current_site}{relative_link}'
+
+                    subject = 'Reset de senha'
+                    message = absolute_url
+                    email_from = settings.EMAIL_HOST_USER
+                    recipient_list = [user.email]
+                    send_mail(subject, message, email_from, recipient_list)
+            except:
+                pass
+            return Response(status=status.HTTP_200_OK)
+    
+        
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+    serializer_class = RestPasswordRequestSerializer
+    
+    def get(self, request, uidb64, token):
+        try:
+            id = smart_str(urlsafe_b64decode(uidb64))
+            user = User.objects.get(id=id)
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'uid64': uidb64,
+                'token': token
+            }, status=status.HTTP_200_OK)
+        except DjangoUnicodeDecodeError as e:
+            print(e)
+
+
+class SetNewPasswordAPIView(generics.GenericAPIView):
+    serializer_class = SetNewPasswordSerializer
+    
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.data['email']
-        user = User.objects.filter(email=email).first()
-        if user:
-            encoded_pk = urlsafe_b64encode(force_bytes(user.pk))
-            token = PasswordResetTokenGenerator().make_token(user)
+        return Response(status=status.HTTP_200_OK)
     
     
-class SolicitacaoListCreateAPIView(generics.ListCreateAPIView):
+class SolicitacaoViewSet(viewsets.ModelViewSet):
     queryset = Solicitacao.objects.all()
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
-    def perform_create(self, serializer):
-        return super().perform_create(serializer)

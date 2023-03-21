@@ -96,3 +96,18 @@ class SetNewPasswordSerializer(serializers.Serializer):
             return user
         except:
             pass
+        
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        fields = ('username', 'password')
+        
+
+class CSRFTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(write_only=True)
+    
+    class Meta:
+        fields = ('tokeb')

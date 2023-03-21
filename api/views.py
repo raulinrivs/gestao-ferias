@@ -1,16 +1,17 @@
 #Django Imports
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
+from django.middleware.csrf import get_token
+from django.contrib.auth import authenticate, login, logout
 # from django.urls import reverse
 from django.utils.encoding import force_bytes, smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 #REST Framework Imports
-from rest_framework import viewsets, generics, permissions, authentication, mixins, status
+from rest_framework import viewsets, generics, permissions, authentication, mixins, status, views
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.reverse import reverse
 #API app Imports
-from api.serializers import UserSerializer, SolicitacaoSerializer, SetorSerializer, ChangePasswordSerializer, RestPasswordRequestSerializer, CreateUserSerializer, SetNewPasswordSerializer
+from api.serializers import CSRFTokenSerializer, LoginSerializer, UserSerializer, SolicitacaoSerializer, SetorSerializer, ChangePasswordSerializer, RestPasswordRequestSerializer, CreateUserSerializer, SetNewPasswordSerializer
 from config import settings
 #PONTO app Imports
 from ponto.models import Group as Setor, CustomUser as User, Solicitacao
@@ -24,8 +25,8 @@ from config import settings
 class SetorViewSet(viewsets.ModelViewSet):
     queryset = Setor.objects.all()
     serializer_class = SetorSerializer
-    http_method_names = ['get']
-    authentication_classes = [authentication.SessionAuthentication]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    authentication_classes = [authentication.BaseAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -33,6 +34,7 @@ class SetorViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
+    http_method_names = ['get', 'patch', 'delete']
     serializer_class = UserSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -87,7 +89,7 @@ def password_generator():
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
     model = User
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, queryset=None):
         obj = self.request.user
@@ -165,7 +167,44 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
     
 class SolicitacaoViewSet(viewsets.ModelViewSet):
     queryset = Solicitacao.objects.all()
+    http_method_names = ['get', 'post', 'patch', 'delete']
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
+
+class CSRFTokenAPIViewSet(generics.GenericAPIView):
+    serializer_class = CSRFTokenSerializer
+    
+    def get(self, request):
+        response = Response(data={'X-CSRFToken': get_token(request)})
+        return response
+
+
+class LoginAPIViewSet(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+    
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        if username is None or password is None:
+            return Response({'detail': 'Please provide username and password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        login(request, user)
+        return Response({'detail': 'Successfully logged in.'}, status=status.HTTP_200_OK)
+    
+    
+class LogoutAPIViewSet(views.APIView):
+    
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'You\'re not logged in.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        logout(request)
+        return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
+        

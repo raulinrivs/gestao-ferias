@@ -4,13 +4,14 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import CustomUser, Solicitacao
 
+
 class CustomUserAdmin(UserAdmin):
     fieldsets = (
         (None, {
-            'fields': ('username', 'password')
+            'fields': ('matricula', 'password')
         }),
         ('Personal info', {
-            'fields': ('first_name', 'last_name', 'email', 'matricula')
+            'fields': ('first_name', 'last_name', 'email')
         }),
         ('Permissions', {
             'fields': (
@@ -19,9 +20,20 @@ class CustomUserAdmin(UserAdmin):
                 )
         }),
         ('Important dates', {
-            'fields': ('last_login', 'date_joined', 'data_admissao', 'data_senha')
+            'fields': (
+                'last_login', 'date_joined', 'data_admissao', 'data_senha')
         }),
     )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('matricula', 'password1', 'password2'),
+        }),
+    )
+    list_display = ('matricula', 'first_name', 'last_name', 'is_staff')
+    search_fields = ('matricula', 'first_name', 'last_name')
+    ordering = ('date_joined',)
+
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Solicitacao)

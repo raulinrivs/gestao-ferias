@@ -1,9 +1,9 @@
 from django.urls import path, include
-from django import views
 from django.views.generic import TemplateView
 from api.views import SolicitacaoViewSet, SetorViewSet, \
     ChangePasswordView, CreateUserViewSet, PasswordTokenCheckAPI, \
-    ResetPasswordView, SetNewPasswordAPIView, UserViewSet, LoginAPIViewSet, CSRFTokenAPIViewSet, LogoutAPIViewSet
+    ResetPasswordView, SetNewPasswordAPIView, UserViewSet, LoginAPIViewSet, \
+    CSRFTokenAPIViewSet, LogoutAPIViewSet
 from rest_framework import routers
 from rest_framework.schemas import get_schema_view
 
@@ -29,8 +29,10 @@ urlpatterns = [
     path('accounts/password_reset/', ResetPasswordView.as_view(), name='password_reset'),
     path('accounts/password_reset_confirm/<uidb64>/<token>/', PasswordTokenCheckAPI.as_view(), name='password_reset_confirm'),
     path('accounts/password_reset_complete/', SetNewPasswordAPIView.as_view(), name='password_reset_complete'),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('api_schema', get_schema_view(title='API Schema', description='Guide'), name='api_schema'),
+    path('api-auth/', include('rest_framework.urls',
+                              namespace='rest_framework')),
+    path('api_schema', get_schema_view(
+        title='API Schema', description='Guide'), name='api_schema'),
     path('docs/', TemplateView.as_view(
         template_name='swagger.html',
         extra_context={'schema_url': 'api_schema'}

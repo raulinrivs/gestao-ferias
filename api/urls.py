@@ -10,7 +10,7 @@ from rest_framework.schemas import get_schema_view
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 
-router.register(r'users', UserViewSet)
+# router.register(r'users', UserViewSet)
 router.register(r'users', CreateUserViewSet)
 router.register(r'solicitacao', SolicitacaoViewSet)
 router.register(r'setores', SetorViewSet)

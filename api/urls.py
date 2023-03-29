@@ -3,7 +3,8 @@ from django.views.generic import TemplateView
 from api.views import SolicitacaoViewSet, SetorViewSet, \
     ChangePasswordView, CreateUserViewSet, PasswordTokenCheckAPI, \
     ResetPasswordView, SetNewPasswordAPIView, UserViewSet, LoginAPIViewSet, \
-    CSRFTokenAPIViewSet, LogoutAPIViewSet
+    CSRFTokenAPIViewSet, LogoutAPIViewSet, SessionValidatorViewSet, \
+    WhoAmIViewSet
 from rest_framework import routers
 from rest_framework.schemas import get_schema_view
 
@@ -23,8 +24,8 @@ urlpatterns = [
     path('csrf/', CSRFTokenAPIViewSet.as_view(), name='api-csrf'),
     path('accounts/login/', LoginAPIViewSet.as_view(), name='api-login'),
     path('accounts/logout/', LogoutAPIViewSet.as_view(), name='api-logout'),
-    # path('session/', views.session_view, name='api-session'),
-    # path('whoami/', views.whoami_view, name='api-whoami'),
+    path('session/', SessionValidatorViewSet.as_view(), name='api-session'),
+    path('whoami/', WhoAmIViewSet.as_view(), name='api-whoami'),
     path('accounts/password_change/', ChangePasswordView.as_view(), name='password_change'),
     path('accounts/password_reset/', ResetPasswordView.as_view(), name='password_reset'),
     path('accounts/password_reset_confirm/<uidb64>/<token>/', PasswordTokenCheckAPI.as_view(), name='password_reset_confirm'),

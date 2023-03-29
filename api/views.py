@@ -27,6 +27,13 @@ from base64 import urlsafe_b64encode, urlsafe_b64decode
 # from config import settings
 
 
+class SolicitacaoViewSet(viewsets.ModelViewSet):
+    queryset = Solicitacao.objects.all()
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    serializer_class = SolicitacaoSerializer
+    authentication_classes = [authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
 class SetorViewSet(viewsets.ModelViewSet):
     queryset = Setor.objects.all()
     serializer_class = SetorSerializer
@@ -104,10 +111,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         return obj
 
     def update(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             self.object.set_password(serializer.data.get("new_password"))
             self.object.save()
             response = {
@@ -175,14 +179,6 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class SolicitacaoViewSet(viewsets.ModelViewSet):
-    queryset = Solicitacao.objects.all()
-    http_method_names = ['get', 'post', 'patch', 'delete']
-    serializer_class = SolicitacaoSerializer
-    authentication_classes = [authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-
 class CSRFTokenAPIViewSet(generics.GenericAPIView):
     serializer_class = CSRFTokenSerializer
 
@@ -198,19 +194,24 @@ class LoginAPIViewSet(generics.GenericAPIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
+        if request.user.is_authenticated:
+            return Response(
+                {'detail': 'Voce já está logado'},
+                status=status.HTTP_400_BAD_REQUEST)
+                    
         if username is None or password is None:
             return Response(
-                {'detail': 'Please provide username and password.'},
+                {'detail': 'Favor inserir senha e matricula'},
                 status=status.HTTP_400_BAD_REQUEST)
 
         user = authenticate(username=username, password=password)
 
         if user is None:
-            return Response({'detail': 'Invalid credentials.'},
+            return Response({'detail': 'Credenciais inválidas'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         login(request, user)
-        return Response({'detail': 'Successfully logged in.'},
+        return Response({'detail': 'Login realizado com sucesso'},
                         status=status.HTTP_200_OK)
 
 
@@ -224,3 +225,21 @@ class LogoutAPIViewSet(views.APIView):
         logout(request)
         return Response({'detail': 'Successfully logged out.'},
                         status=status.HTTP_200_OK)
+
+
+class SessionValidatorViewSet(views.APIView):
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return Response({'isAuthenticated': False})
+        
+        return Response({'isAuthenticated': True})
+    
+    
+class WhoAmIViewSet(views.APIView):
+    
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return Response({'isAuthenticated': False})
+
+        return Response({'username': request.user.username})

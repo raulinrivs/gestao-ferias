@@ -1,5 +1,5 @@
 from django.db import models
-import datetime
+from django.utils.timezone import now
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
@@ -11,7 +11,7 @@ class UserManager(BaseUserManager):
     def _create_user(self, matricula, password, **extra_fields):
         if not matricula:
             raise ValueError('The given matricula must be set')
-        matricula = self.normalize_matricula(matricula)
+        matricula = matricula.lower()
         user = self.model(matricula=matricula, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -39,11 +39,11 @@ class CustomUser(AbstractUser):
     matricula = models.CharField(
         max_length=15, verbose_name='Matricula', unique=True)
     data_admissao = models.DateField(
-        verbose_name='Data de admissão', default=datetime.date.today())
+        verbose_name='Data de admissão', default=now())
     gestor = models.ManyToManyField(Group, blank=True)
     data_senha = models.DateField(
         verbose_name='Data da ultima troca de senha',
-        default=datetime.date.today())
+        default=now())
 
     USERNAME_FIELD = 'matricula'
     REQUIRED_FIELDS = []
@@ -59,24 +59,26 @@ class Solicitacao(models.Model):
     class Meta:
         verbose_name_plural = "Solicitações"
 
-        TIPO_FERIAS = [
+    TIPO_FERIAS = [
                 ('INT', 'Integral'),
                 ('VEN', 'Venda'),
                 ('PAR', 'Parcial'),
         ]
-        STATUS = [
+    STATUS = [
                 ('CRI', 'Criada'),
                 ('VGE', 'Validada pelo Gestor'),
                 ('RGE', 'Recusada pelo Gestor'),
                 ('DEF', 'Deferido'),
                 ('RRH', 'Recusada pelo RH'),
                 ('CON', 'Concluida'),
-        ]
-        status = models.CharField(choices=STATUS, max_length=3)
-        tipo_ferias = models.CharField(choices=TIPO_FERIAS, max_length=3)
-        intervalos = models.TextField()
-        solicitante = models.ForeignKey(
+    ]
+    status = models.CharField(choices=STATUS, max_length=3)
+    tipo_ferias = models.CharField(choices=TIPO_FERIAS, max_length=3)
+    intervalos = models.TextField()
+    solicitante = models.ForeignKey(
                 CustomUser, on_delete=models.DO_NOTHING)
+    data_criacao = models.DateField(
+        verbose_name='Data de criação', default=now())
 
-        def __str__(self) -> str:
-            return f'{self.tipo_ferias} - {self.status} - {self.solicitante}'
+    def __str__(self) -> str:
+        return f'{self.tipo_ferias} - {self.status} - {self.solicitante}'

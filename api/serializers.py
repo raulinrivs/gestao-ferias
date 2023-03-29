@@ -11,6 +11,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class UserDashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'matricula', 'data_admissao')
+
+
+
 '''
 class CreateUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,15 +34,9 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     model = User
-    password = serializers.CharField(required=True)
-    password_confirm = serializers.CharField(required=True)
+    old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError(
-                {"password": "Password fields didn't match."})
-        return attrs
+    new_password_confirm = serializers.CharField(required=True)
 
     def validate_old_password(self, value):
         user = self.context['request'].user
@@ -52,6 +53,7 @@ class SetorSerializer(serializers.ModelSerializer):
 
 
 class SolicitacaoSerializer(serializers.ModelSerializer):
+    solicitante = UserDashboardSerializer(many=False, read_only=True)
     class Meta:
         model = Solicitacao
         fields = '__all__'

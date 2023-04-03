@@ -1,8 +1,9 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 
-from .models import CustomUser, Solicitacao
+from .models import CustomUser, Solicitacao, Setor
 
 
 class CustomUserAdmin(UserAdmin):
@@ -16,7 +17,7 @@ class CustomUserAdmin(UserAdmin):
         ('Permissions', {
             'fields': (
                 'is_active', 'is_staff', 'is_superuser',
-                'groups', 'user_permissions', 'gestor'
+                'setores', 'user_permissions', 'gestor'
                 )
         }),
         ('Important dates', {
@@ -31,9 +32,22 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
     list_display = ('matricula', 'first_name', 'last_name', 'is_staff')
+    list_filter = ("is_staff", "is_superuser", "is_active", "setores")
     search_fields = ('matricula', 'first_name', 'last_name')
     ordering = ('date_joined',)
+    filter_horizontal = (
+        "setores",
+        "user_permissions",
+        "gestor"
+    )
 
 
+class SetorAdmin(admin.ModelAdmin):
+    filter_horizontal = (
+        "permissions",
+    )
+
+admin.site.unregister(Group)
+admin.site.register(Setor, SetorAdmin)
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Solicitacao)

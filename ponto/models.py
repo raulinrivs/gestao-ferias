@@ -1,8 +1,32 @@
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.utils.timezone import now
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
+
+class SetorManager(models.Manager):
+
+    use_in_migrations = True
+
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
+
+
+class Setor(models.Model):
+    class Meta:
+        verbose_name_plural = "Setores"
+        
+    name = models.CharField(_("name"), max_length=150, unique=True)
+    contingente = models.IntegerField(blank=True, null=True)
+    permissions = models.ManyToManyField(
+        Permission,
+        verbose_name=_("permissions"),
+        blank=True,
+    )
+    
+    def __str__(self) -> str:
+        return f'{self.name}'
 
 class UserManager(BaseUserManager):
 
@@ -35,24 +59,29 @@ class UserManager(BaseUserManager):
 
 
 class CustomUser(AbstractUser):
-    username = None
     matricula = models.CharField(
         max_length=15, verbose_name='Matricula', unique=True)
     data_admissao = models.DateField(
         verbose_name='Data de admissão', default=now())
-    gestor = models.ManyToManyField(Group, blank=True)
+    gestor = models.ManyToManyField(Setor, blank=True)
     data_senha = models.DateField(
         verbose_name='Data da ultima troca de senha',
         default=now())
+    setores = models.ManyToManyField(
+        Setor,
+        verbose_name=_("setores"),
+        blank=True,
+        related_name="user_set",
+        related_query_name="user",
+    )
 
     USERNAME_FIELD = 'matricula'
     REQUIRED_FIELDS = []
+    
+    username = None
+    groups = None
 
     objects = UserManager()
-
-# class CustomUserManager(UserManager):
-#         def create_user(self, username: str, matricula: Optional[str] = ..., password: Optional[str] = ..., **extra_fields: Any) -> _T: # noqa: E501
-#                 return super().create_user(username, matricula, password, **extra_fields) # noqa: E501
 
 
 class Solicitacao(models.Model):

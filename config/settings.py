@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'rest_framework_swagger',
-    'django_rest_passwordreset',
 ]
 
 MIDDLEWARE = [

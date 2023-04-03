@@ -12,6 +12,7 @@ from rest_framework import viewsets, generics, permissions, \
     authentication, mixins, status, views
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from rest_framework.serializers import ValidationError
 # API app Imports
 from api.serializers import CSRFTokenSerializer, LoginSerializer, \
     UserSerializer, SolicitacaoSerializer, SetorSerializer, \
@@ -19,11 +20,13 @@ from api.serializers import CSRFTokenSerializer, LoginSerializer, \
     CreateUserSerializer, SetNewPasswordSerializer
 from config import settings
 # PONTO app Imports
-from ponto.models import Group as Setor, CustomUser as User, Solicitacao
+from ponto.models import Setor, CustomUser as User, Solicitacao
 # General Imports
+from datetime import datetime, date, time
 from random import choice
 import string
 from base64 import urlsafe_b64encode, urlsafe_b64decode
+from api.utils import EnablePartialUpdateMixin
 # from config import settings
 
 
@@ -33,6 +36,45 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        tempo_servico = datetime.combine(date.today(), time(0,0)) - datetime.combine(self.request.user.data_admissao, time(0,0))
+        user = self.request.user
+        setores = user.setores.all()
+        ferias_concluidas = self.queryset.filter(status='CON').count()
+        tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
+        print(f'Tempo de serviço: {tempo_servico}\nSetores: {setores}\
+              \nFérias concluidas: {ferias_concluidas}, Result: {tempo_servico_result}')
+        
+        # Validação de Solicitação em aberto
+        if self.queryset.filter(solicitante=user, status__in=['CRI', 'VGE', 'DEF']).exists():
+            raise ValidationError('Você já possui uma solicitação em aberto')
+
+        # Validação de Contingente
+        for setor in setores:
+            solicitacoes = self.queryset.filter(solicitante__setores=setor, status='DEF')
+            if solicitacoes.count() >= setor.contingente:
+                raise ValidationError('O contingente do setor já foi atingido, entre em contato com a gestão')
+
+        # Validação de tempo de serviço suficiente
+        if tempo_servico_result < 365:
+            raise ValidationError('Você ainda não possui tempo de serviço para solicitar férias')
+
+        # Validação de férias vencidas
+        if tempo_servico_result > 700:
+            raise ValidationError('Você possui férias vencidas, favor entrar em contato com o seu Gestor ou RH')
+
+        self.send_email(self.request.user)
+        return Solicitacao.objects.create(
+            status='CRI',
+            tipo_ferias=serializer.validated_data['tipo_ferias'],
+            intervalos=serializer.validated_data['intervalos'],
+            solicitante=self.request.user,
+        )
+    
+    # Mandar para services.py
+    def send_email(self, user: User):
+        print('Enviar')
 
 class SetorViewSet(viewsets.ModelViewSet):
     queryset = Setor.objects.all()

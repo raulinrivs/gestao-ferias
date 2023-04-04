@@ -26,7 +26,6 @@ from datetime import datetime, date, time
 from random import choice
 import string
 from base64 import urlsafe_b64encode, urlsafe_b64decode
-from api.utils import EnablePartialUpdateMixin
 # from config import settings
 
 

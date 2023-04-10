@@ -63,7 +63,7 @@ class CustomUser(AbstractUser):
         max_length=15, verbose_name='Matricula', unique=True)
     data_admissao = models.DateField(
         verbose_name='Data de admissão', default=now())
-    gestor = models.ManyToManyField(Setor, blank=True)
+    gestor = models.BooleanField(verbose_name='Gestor', default=False)
     data_senha = models.DateField(
         verbose_name='Data da ultima troca de senha',
         default=now())
@@ -79,7 +79,6 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = []
     
     username = None
-    groups = None
 
     objects = UserManager()
 

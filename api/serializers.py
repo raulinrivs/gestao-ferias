@@ -62,18 +62,23 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
     def validate(self, attrs):
-        intervalos = json.loads(attrs.get('intervalos', self.instance.intervalos))
+        if self.instance:
+            intervalos = json.loads(self.instance.intervalos)
+            tipo_ferias = self.instance.tipo_ferias
+        else:
+            intervalos = json.loads(attrs.get('intervalos'))
+            tipo_ferias = attrs.get('tipo_ferias')
         for chave, valor in intervalos.items():
             intervalos[chave] = datetime.strptime(valor, '%d/%m/%Y')
         data_hoje = datetime.combine(date.today(), time(0,0))
 
-        if attrs.get('tipo_ferias', self.instance.tipo_ferias) == 'INT':
+        if tipo_ferias == 'INT':
             validador_ferias_integral(intervalos['data_inicial_1'], intervalos['data_final_1'], data_hoje)
-        elif attrs.get('tipo_ferias', self.instance.tipo_ferias) == 'VEN':
+        elif tipo_ferias == 'VEN':
             validador_ferias_venda(
                 intervalos['data_inicial_1'], intervalos['data_final_1'], 
                 intervalos['data_inicial_venda'], intervalos['data_final_venda'])
-        elif attrs.get('tipo_ferias', self.instance.tipo_ferias) == 'PAR':
+        elif tipo_ferias == 'PAR':
             validador_ferias_parcial(
                 intervalos['data_inicial_1'], intervalos['data_final_1'],
                 intervalos['data_inicial_2'], intervalos['data_final_2'],

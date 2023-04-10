@@ -38,7 +38,6 @@ class CustomUserAdmin(UserAdmin):
     filter_horizontal = (
         "setores",
         "user_permissions",
-        "gestor"
     )
 
 

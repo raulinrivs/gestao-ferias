@@ -26,7 +26,6 @@ from datetime import datetime, date, time
 from random import choice
 import string
 from base64 import urlsafe_b64encode, urlsafe_b64decode
-from api.utils import EnablePartialUpdateMixin
 # from config import settings
 
 
@@ -37,11 +36,29 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
+    def get_queryset(self):
+        user = self.request.user
+        setores = user.setores.all()
+        self.queryset.filter(solicitante=user)
+        if setores:
+            for setor in setores:
+                if setor.name == 'RH' and user.gestor:
+                    return super().get_queryset()
+                elif setor.name == 'RH':
+                    return self.queryset.exclude(solicitante=user)
+                elif user.gestor:
+                    # return self.queryset.filter(solicitante__setores__name__in=[...])
+                    return self.queryset.filter(solicitante__setores=setor)
+                else:
+                    return self.queryset.filter(solicitante=user)
+        print(self.queryset)
+        return super().get_queryset()
+    
     def perform_create(self, serializer):
         tempo_servico = datetime.combine(date.today(), time(0,0)) - datetime.combine(self.request.user.data_admissao, time(0,0))
         user = self.request.user
         setores = user.setores.all()
-        ferias_concluidas = self.queryset.filter(status='CON').count()
+        ferias_concluidas = self.queryset.filter(status='CON', solicitante=user).count()
         tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
         print(f'Tempo de serviço: {tempo_servico}\nSetores: {setores}\
               \nFérias concluidas: {ferias_concluidas}, Result: {tempo_servico_result}')

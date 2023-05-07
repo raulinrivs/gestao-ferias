@@ -288,7 +288,7 @@ class LogoutAPIViewSet(views.APIView):
 
 class SessionValidatorViewSet(views.APIView):
 
-    def post(self, request):
+    def get(self, request):
         if not request.user.is_authenticated:
             return Response({'isAuthenticated': False})
         
@@ -296,9 +296,11 @@ class SessionValidatorViewSet(views.APIView):
     
     
 class WhoAmIViewSet(views.APIView):
+    serializer_class = UserSerializer
     
-    def post(self, request):
+    def get(self, request):
         if not request.user.is_authenticated:
             return Response({'isAuthenticated': False})
 
-        return Response({'username': request.user.username})
+        user = self.serializer_class(User.objects.get(id=request.user.id))
+        return Response(user.data)

@@ -141,3 +141,4 @@ class CSRFTokenSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('token')
+        

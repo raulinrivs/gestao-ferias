@@ -15,6 +15,7 @@ router.register(r'users', UserViewSet)
 router.register(r'users', CreateUserViewSet)
 router.register(r'solicitacao', SolicitacaoViewSet)
 router.register(r'setores', SetorViewSet)
+# router.register(r'accounts', WhoAmIViewSet)
 
 
 # Wire up our API using automatic URL routing.

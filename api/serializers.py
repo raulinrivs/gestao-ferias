@@ -3,7 +3,8 @@ import json
 from rest_framework import serializers
 from datetime import datetime, date, time
 from ponto.models import CustomUser as User, Solicitacao, Setor
-from api.validators import validador_ferias_integral, validador_ferias_venda, validador_ferias_parcial
+from api.validators import validador_ferias_integral, validador_ferias_venda, \
+    validador_ferias_parcial
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
 
@@ -18,7 +19,6 @@ class UserDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'first_name', 'last_name', 'matricula', 'data_admissao')
-
 
 
 '''
@@ -41,9 +41,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
     new_password_confirm = serializers.CharField(required=True)
 
-    def validate_old_password(self, value):
-        user = self.context['request'].user
-        if not user.check_password(value):
+    def validate_matching_password(self, value):
+        if value['new_password'] != value['new_password_confirm']:
             raise serializers.ValidationError(
                 {"old_password": "Old password is not correct"})
         return value
@@ -57,10 +56,11 @@ class SetorSerializer(serializers.ModelSerializer):
 
 class SolicitacaoSerializer(serializers.ModelSerializer):
     solicitante = UserDashboardSerializer(many=False, read_only=True)
+
     class Meta:
         model = Solicitacao
         fields = '__all__'
-        
+
     def validate(self, attrs):
         if self.instance:
             intervalos = json.loads(self.instance.intervalos)
@@ -70,13 +70,16 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
             tipo_ferias = attrs.get('tipo_ferias')
         for chave, valor in intervalos.items():
             intervalos[chave] = datetime.strptime(valor, '%d/%m/%Y')
-        data_hoje = datetime.combine(date.today(), time(0,0))
+        data_hoje = datetime.combine(date.today(), time(0, 0))
 
         if tipo_ferias == 'INT':
-            validador_ferias_integral(intervalos['data_inicial_1'], intervalos['data_final_1'], data_hoje)
+            validador_ferias_integral(
+                intervalos['data_inicial_1'], intervalos['data_final_1'],
+                data_hoje
+            )
         elif tipo_ferias == 'VEN':
             validador_ferias_venda(
-                intervalos['data_inicial_1'], intervalos['data_final_1'], 
+                intervalos['data_inicial_1'], intervalos['data_final_1'],
                 intervalos['data_inicial_venda'], intervalos['data_final_venda'])
         elif tipo_ferias == 'PAR':
             validador_ferias_parcial(
@@ -95,10 +98,10 @@ class RestPasswordRequestSerializer(serializers.Serializer):
     def validate(self, attrs):
         try:
             email = attrs.get('email')
-            user = User.objects.filter(email=email).first()
+            if User.objects.exists(email=email):
+                return super().validate(attrs)
         except:
             print('deu ruim')
-        return super().validate(attrs)
 
 
 class SetNewPasswordSerializer(serializers.Serializer):
@@ -141,4 +144,3 @@ class CSRFTokenSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('token')
-        

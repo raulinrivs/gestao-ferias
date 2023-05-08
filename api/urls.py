@@ -12,7 +12,7 @@ from rest_framework.schemas import get_schema_view
 router = routers.DefaultRouter()
 
 router.register(r'users', UserViewSet)
-router.register(r'users', CreateUserViewSet)
+router.register(r'user', CreateUserViewSet)
 router.register(r'solicitacao', SolicitacaoViewSet)
 router.register(r'setores', SetorViewSet)
 # router.register(r'accounts', WhoAmIViewSet)

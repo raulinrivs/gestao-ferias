@@ -35,7 +35,7 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         user = self.request.user
         setores = user.setores.all()
@@ -47,39 +47,49 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
                 elif setor.name == 'RH':
                     return self.queryset.exclude(solicitante=user)
                 elif user.gestor:
-                    # return self.queryset.filter(solicitante__setores__name__in=[...])
                     return self.queryset.filter(solicitante__setores=setor)
                 else:
                     return self.queryset.filter(solicitante=user)
         print(self.queryset)
         return super().get_queryset()
-    
+
     def perform_create(self, serializer):
-        tempo_servico = datetime.combine(date.today(), time(0,0)) - datetime.combine(self.request.user.data_admissao, time(0,0))
+        tempo_servico = (
+            datetime.combine(date.today(), time(0, 0)) -
+            datetime.combine(self.request.user.data_admissao, time(0, 0))
+        )
         user = self.request.user
         setores = user.setores.all()
         ferias_concluidas = self.queryset.filter(status='CON', solicitante=user).count()
         tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
         print(f'Tempo de serviço: {tempo_servico}\nSetores: {setores}\
               \nFérias concluidas: {ferias_concluidas}, Result: {tempo_servico_result}')
-        
+
         # Validação de Solicitação em aberto
-        if self.queryset.filter(solicitante=user, status__in=['CRI', 'VGE', 'DEF']).exists():
+        if self.queryset.filter(
+            solicitante=user, status__in=['CRI', 'VGE', 'DEF']
+        ).exists():
             raise ValidationError('Você já possui uma solicitação em aberto')
 
         # Validação de Contingente
         for setor in setores:
-            solicitacoes = self.queryset.filter(solicitante__setores=setor, status='DEF')
+            solicitacoes = self.queryset.filter(
+                solicitante__setores=setor,
+                status='DEF'
+            )
             if solicitacoes.count() >= setor.contingente:
-                raise ValidationError('O contingente do setor já foi atingido, entre em contato com a gestão')
+                raise ValidationError('O contingente do setor já foi atingido, ' +
+                                      'entre em contato com a gestão')
 
         # Validação de tempo de serviço suficiente
         if tempo_servico_result < 365:
-            raise ValidationError('Você ainda não possui tempo de serviço para solicitar férias')
+            raise ValidationError('Você ainda não possui tempo de serviço para' +
+                                  'solicitar férias')
 
         # Validação de férias vencidas
         if tempo_servico_result > 700:
-            raise ValidationError('Você possui férias vencidas, favor entrar em contato com o seu Gestor ou RH')
+            raise ValidationError('Você possui férias vencidas, favor entrar em ' +
+                                  'contato com o seu Gestor ou RH')
 
         self.send_email(self.request.user)
         return Solicitacao.objects.create(
@@ -88,10 +98,11 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
             intervalos=serializer.validated_data['intervalos'],
             solicitante=self.request.user,
         )
-    
+
     # Mandar para services.py
     def send_email(self, user: User):
         print('Enviar')
+
 
 class SetorViewSet(viewsets.ModelViewSet):
     queryset = Setor.objects.all()
@@ -165,21 +176,18 @@ class ChangePasswordView(generics.UpdateAPIView):
     model = User
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_object(self, queryset=None):
-        obj = self.request.user
-        return obj
-
     def update(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            self.object.set_password(serializer.data.get("new_password"))
-            self.object.save()
-            response = {
-                'status': 'success',
-                'code': status.HTTP_200_OK,
-                'message': 'Password updated successfully',
-                'data': []
-            }
-            return Response(response)
+            if self.request.user.check_password(serializer.validated_data['new_password']):
+                self.request.user.set_password(serializer.data.get("new_password"))
+                response = {
+                    'status': 'success',
+                    'code': status.HTTP_200_OK,
+                    'message': 'Password updated successfully',
+                    'data': []
+                }
+                return Response(response)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -257,7 +265,7 @@ class LoginAPIViewSet(generics.GenericAPIView):
             return Response(
                 {'detail': 'Voce já está logado'},
                 status=status.HTTP_400_BAD_REQUEST)
-                    
+
         if username is None or password is None:
             return Response(
                 {'detail': 'Favor inserir senha e matricula'},
@@ -291,13 +299,13 @@ class SessionValidatorViewSet(views.APIView):
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({'isAuthenticated': False})
-        
+
         return Response({'isAuthenticated': True})
-    
-    
+
+
 class WhoAmIViewSet(views.APIView):
     serializer_class = UserSerializer
-    
+
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({'isAuthenticated': False})

@@ -9,7 +9,8 @@ def validador_ferias_integral(inicial: datetime, final: datetime, hoje: datetime
         raise ValidationError('O intervalo deve possuir 30 dias')
     if inicial - hoje < timedelta(days=30):
         raise ValidationError('Só é possivel solicitar férias com data inicial daqui 30 dias')
-    
+
+
 def validador_ferias_venda(
     inicial: datetime, final: datetime, inicial_venda: datetime, final_venda: datetime):
     print(final - inicial + final_venda - inicial_venda)

@@ -30,9 +30,33 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
+    matricula = serializers.CharField(allow_blank=True)
+
     class Meta:
         model = User
+        fields = (
+            'matricula', 'email', 'first_name', 'last_name', 'setores',
+            'gestor', 'data_admissao'
+        )
+
+
+class FirstLoginSerializer(serializers.Serializer):
+    matricula = serializers.CharField(write_only=True)
+    email = serializers.CharField(write_only=True)
+
+    class Meta:
         fields = ('matricula', 'email')
+
+    def validate(self, attrs):
+        user = User.objects.get(matricula=attrs['matricula'], email=attrs['email'])
+        if user:
+            if user.last_login is None:
+                return super().validate(attrs)
+            else:
+                raise serializers.ValidationError(
+                    "Usuário ja realizou o seu primeiro login."
+                )
+        raise serializers.ValidationError("Matricula e email não existentes.")
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -96,12 +120,11 @@ class RestPasswordRequestSerializer(serializers.Serializer):
         fields = ('email')
 
     def validate(self, attrs):
-        try:
-            email = attrs.get('email')
-            if User.objects.exists(email=email):
-                return super().validate(attrs)
-        except:
-            print('deu ruim')
+        email = attrs.get('email')
+        if User.objects.get(email=email):
+            return super().validate(attrs)
+        else:
+            raise serializers.ValidationError('Email não existente.')
 
 
 class SetNewPasswordSerializer(serializers.Serializer):
@@ -132,11 +155,11 @@ class SetNewPasswordSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(write_only=True)
+    matricula = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        fields = ('username', 'password')
+        fields = ('matricula', 'password')
 
 
 class CSRFTokenSerializer(serializers.Serializer):

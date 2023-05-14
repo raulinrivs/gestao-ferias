@@ -14,10 +14,10 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.serializers import ValidationError
 # API app Imports
-from api.serializers import CSRFTokenSerializer, LoginSerializer, \
+from api.serializers import CSRFTokenSerializer, FirstLoginSerializer, \
     UserSerializer, SolicitacaoSerializer, SetorSerializer, \
     ChangePasswordSerializer, RestPasswordRequestSerializer, \
-    CreateUserSerializer, SetNewPasswordSerializer
+    CreateUserSerializer, SetNewPasswordSerializer, LoginSerializer
 from config import settings
 # PONTO app Imports
 from ponto.models import Setor, CustomUser as User, Solicitacao
@@ -42,15 +42,16 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
         self.queryset.filter(solicitante=user)
         if setores:
             for setor in setores:
-                if setor.name == 'RH' and user.gestor:
+                if setor.recursos_humanos and user.gestor:
                     return super().get_queryset()
-                elif setor.name == 'RH':
+                elif setor.recursos_humanos:
                     return self.queryset.exclude(solicitante=user)
                 elif user.gestor:
                     return self.queryset.filter(solicitante__setores=setor)
                 else:
                     return self.queryset.filter(solicitante=user)
-        print(self.queryset)
+        else:
+            raise Exception("Usuário não está vinculado a nenhum setor")
         return super().get_queryset()
 
     def perform_create(self, serializer):
@@ -91,17 +92,18 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
             raise ValidationError('Você possui férias vencidas, favor entrar em ' +
                                   'contato com o seu Gestor ou RH')
 
-        self.send_email(self.request.user)
-        return Solicitacao.objects.create(
+        solicitacao = Solicitacao.objects.create(
             status='CRI',
             tipo_ferias=serializer.validated_data['tipo_ferias'],
             intervalos=serializer.validated_data['intervalos'],
             solicitante=self.request.user,
         )
-
-    # Mandar para services.py
-    def send_email(self, user: User):
-        print('Enviar')
+        subject = 'Solicitação de ferias criada'
+        message = f'Solicitação : {solicitacao}'
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [self.request.user.email]
+        send_mail(subject, message, email_from, recipient_list)
+        return Response(solicitacao, status=status.HTTP_201_CREATED)
 
 
 class SetorViewSet(viewsets.ModelViewSet):
@@ -123,23 +125,6 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-class CreateUserViewSet(mixins.CreateModelMixin,
-                        viewsets.GenericViewSet):
-    queryset = User.objects.all()
-    serializer_class = CreateUserSerializer
-
-    def perform_create(self, serializer):
-        validated_data = serializer.validated_data
-        senha = password_generator()
-        print(senha)
-        user = User.objects.create_user(
-            matricula=validated_data.get('matricula'),
-            password=senha,
-            email=validated_data.get('email'),
-        )
-        return user
-
-
 def password_generator():
     senha = ''
     for i in range(8):
@@ -147,28 +132,58 @@ def password_generator():
     return senha
 
 
-'''
-Criação de usuário certa...
 class CreateUserViewSet(mixins.CreateModelMixin,
                         viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = CreateUserSerializer
+
     def perform_create(self, serializer):
         senha = password_generator()
         validated_data = serializer.validated_data
-        username = validated_data.get('first_name').lower() + \
-        '.' + validated_data.get('last_name').lower(),
+        if validated_data.get('matricula'):
+            matricula = validated_data.get('matricula')
+        else:
+            matricula = User.objects.last()
+            matricula = matricula.id + 1
         user = User.objects.create_user(
-            username=username,
+            matricula=matricula,
             password=senha,
             email=validated_data.get('email'),
             first_name=validated_data.get('first_name'),
             last_name=validated_data.get('last_name'),
+            gestor=validated_data.get('gestor'),
+            data_admissao=validated_data.get('data_admissao')
         )
-        for group in validated_data.get('groups'):
-            group.user_set.add(user)
-        return user
-'''
+        for setor in validated_data.get('setores'):
+            setor.user_set.add(user)
+        return Response(user, status=status.HTTP_201_CREATED)
+
+
+class FirstLoginView(generics.GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = FirstLoginSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            user = User.objects.get(
+                matricula=serializer.validated_data['matricula'],
+                email=serializer.validated_data['email']
+            )
+            senha = password_generator()
+            user.set_password(senha)
+            user.save()
+            subject = 'Informações de Login'
+            message = f'Matricula: {user.matricula}\nSenha: {senha}'
+            email_from = settings.EMAIL_HOST_USER
+            recipient_list = [serializer.validated_data['email']]
+            send_mail(subject, message, email_from, recipient_list)
+            return Response(
+                'Email encaminhado para o usuário.',
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(data=serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
 
 class ChangePasswordView(generics.UpdateAPIView):
@@ -179,7 +194,9 @@ class ChangePasswordView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            if self.request.user.check_password(serializer.validated_data['new_password']):
+            if self.request.user.check_password(
+                serializer.validated_data['old_password']
+            ):
                 self.request.user.set_password(serializer.data.get("new_password"))
                 response = {
                     'status': 'success',
@@ -197,27 +214,22 @@ class ResetPasswordView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            try:
-                email = serializer.validated_data.get('email')
-                user = User.objects.filter(email=email).first()
-                if user:
-                    uidb64 = urlsafe_b64encode(force_bytes(user.id))
-                    token = PasswordResetTokenGenerator().make_token(user)
-                    relative_link = reverse(
-                        'password_reset_confirm',
-                        kwargs={'uidb64': smart_str(uidb64), 'token': token})
-                    current_site = get_current_site(
-                        request=request).domain
-                    absolute_url = f'http://{current_site}{relative_link}'
-
-                    subject = 'Reset de senha'
-                    message = absolute_url
-                    email_from = settings.EMAIL_HOST_USER
-                    recipient_list = [user.email]
-                    send_mail(subject, message, email_from, recipient_list)
-            except:
-                pass
-            return Response(status=status.HTTP_200_OK)
+            email = serializer.validated_data.get('email')
+            user = User.objects.get(email=email)
+            if user:
+                uidb64 = urlsafe_b64encode(force_bytes(user.id))
+                token = PasswordResetTokenGenerator().make_token(user)
+                relative_link = reverse(
+                    'password_reset_confirm',
+                    kwargs={'uidb64': smart_str(uidb64), 'token': token})
+                current_site = get_current_site(request=request).domain
+                absolute_url = f'http://{current_site}{relative_link}'
+                subject = 'Reset de senha'
+                message = absolute_url
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [user.email]
+                send_mail(subject, message, email_from, recipient_list)
+                return Response(status=status.HTTP_200_OK)
 
 
 class PasswordTokenCheckAPI(generics.GenericAPIView):
@@ -308,7 +320,10 @@ class WhoAmIViewSet(views.APIView):
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return Response({'isAuthenticated': False})
+            return Response(
+                {'isAuthenticated': False},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user = self.serializer_class(User.objects.get(id=request.user.id))
-        return Response(user.data)
+        return Response(user.data, status=status.HTTP_200_OK)

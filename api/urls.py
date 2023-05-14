@@ -1,6 +1,6 @@
 from django.urls import path, include
 from django.views.generic import TemplateView
-from api.views import SolicitacaoViewSet, SetorViewSet, \
+from api.views import FirstLoginView, SolicitacaoViewSet, SetorViewSet, \
     ChangePasswordView, CreateUserViewSet, PasswordTokenCheckAPI, \
     ResetPasswordView, SetNewPasswordAPIView, UserViewSet, LoginAPIViewSet, \
     CSRFTokenAPIViewSet, LogoutAPIViewSet, SessionValidatorViewSet, \
@@ -12,7 +12,7 @@ from rest_framework.schemas import get_schema_view
 router = routers.DefaultRouter()
 
 router.register(r'users', UserViewSet)
-router.register(r'user', CreateUserViewSet)
+router.register(r'create_user', CreateUserViewSet)
 router.register(r'solicitacao', SolicitacaoViewSet)
 router.register(r'setores', SetorViewSet)
 # router.register(r'accounts', WhoAmIViewSet)
@@ -25,6 +25,7 @@ urlpatterns = [
     path('csrf/', CSRFTokenAPIViewSet.as_view(), name='api-csrf'),
     path('accounts/login/', LoginAPIViewSet.as_view(), name='api-login'),
     path('accounts/logout/', LogoutAPIViewSet.as_view(), name='api-logout'),
+    path('accounts/first_login/', FirstLoginView.as_view(), name='api-first-login'),
     path('session/', SessionValidatorViewSet.as_view(), name='api-session'),
     path('whoami/', WhoAmIViewSet.as_view(), name='api-whoami'),
     path('accounts/password_change/', ChangePasswordView.as_view(), name='password_change'),

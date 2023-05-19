@@ -170,7 +170,6 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'mr.mraulino@gmail.com'
 
-EMAIL_HOST_PASSWORD = 'owgbhhffddeladgs'
 
 LOGIN_REDIRECT_URL = '/dashboard'
 

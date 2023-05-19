@@ -63,8 +63,6 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
         setores = user.setores.all()
         ferias_concluidas = self.queryset.filter(status='CON', solicitante=user).count()
         tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
-        print(f'Tempo de serviço: {tempo_servico}\nSetores: {setores}\
-              \nFérias concluidas: {ferias_concluidas}, Result: {tempo_servico_result}')
 
         # Validação de Solicitação em aberto
         if self.queryset.filter(

@@ -9,7 +9,14 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
 
 
+class SetorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Setor
+        fields = ['id', 'name']
+
+
 class UserSerializer(serializers.ModelSerializer):
+    setor = SetorSerializer(many=False, read_only=True)
     class Meta:
         model = User
         fields = '__all__'
@@ -70,12 +77,6 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"old_password": "Old password is not correct"})
         return value
-
-
-class SetorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Setor
-        fields = ['id', 'name']
 
 
 class SolicitacaoSerializer(serializers.ModelSerializer):

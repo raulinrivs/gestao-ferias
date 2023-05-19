@@ -108,7 +108,7 @@ class SetorViewSet(viewsets.ModelViewSet):
     queryset = Setor.objects.all()
     serializer_class = SetorSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
-    authentication_classes = [authentication.BaseAuthentication]
+    authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
@@ -269,19 +269,19 @@ class LoginAPIViewSet(generics.GenericAPIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
-        username = request.data.get('username')
+        matricula = request.data.get('matricula')
         password = request.data.get('password')
         if request.user.is_authenticated:
             return Response(
                 {'detail': 'Voce já está logado'},
                 status=status.HTTP_400_BAD_REQUEST)
 
-        if username is None or password is None:
+        if matricula is None or password is None:
             return Response(
                 {'detail': 'Favor inserir senha e matricula'},
                 status=status.HTTP_400_BAD_REQUEST)
 
-        user = authenticate(username=username, password=password)
+        user = authenticate(matricula=matricula, password=password)
 
         if user is None:
             return Response({'detail': 'Credenciais inválidas'},

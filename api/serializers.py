@@ -12,11 +12,11 @@ from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
 class SetorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setor
-        fields = ['id', 'name']
+        fields = ('id', 'name', 'contingente', 'recursos_humanos')
 
 
 class UserSerializer(serializers.ModelSerializer):
-    setor = SetorSerializer(many=False, read_only=True)
+    setores = SetorSerializer(many=True, read_only=True)
     class Meta:
         model = User
         fields = '__all__'

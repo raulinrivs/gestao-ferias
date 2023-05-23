@@ -1,7 +1,10 @@
 from base64 import urlsafe_b64decode
 import json
+from django.forms import ValidationError
+from django.core.mail import send_mail
 from rest_framework import serializers
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
+from config import settings
 from ponto.models import CustomUser as User, Solicitacao, Setor
 from api.validators import validador_ferias_integral, validador_ferias_venda, \
     validador_ferias_parcial
@@ -86,22 +89,57 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
         model = Solicitacao
         fields = '__all__'
 
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+
+        subject = 'Solicitação de ferias alterada'
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [request.user.email]
+
+        status = validated_data.get('status')
+        # Envio de email para Gestor
+        if status == 'VGE' or status == 'RGE':
+            if request.user.gestor:
+                users_rh = User.objects.filter(gestor=False, setores__recursos_humanos=True)
+                for user in users_rh:
+                    recipient_list.append(user.email)
+            else:
+                raise ValidationError('Voce não possui permissão para alterar a solicitação.')
+        
+        # Envio de email para RH
+        elif status == 'DEF' or status == 'RRH':
+            if request.user.setores.filter(recursos_humanos=True).exist():
+                user_gestores = User.objects.filter(gestor=True, setores__in=instance.solicitante.setores.all())
+                for user in user_gestores:
+                    recipient_list.append(user.email)
+            else:
+                raise ValidationError('Voce não possui permissão para alterar a solicitação.')
+        
+        instance.status = status
+        instance.save()
+        message = f'Solicitação : {instance}'
+
+        send_mail(subject, message, email_from, recipient_list)
+        return instance
+
     def validate(self, attrs):
         if self.instance:
             intervalos = json.loads(self.instance.intervalos)
             tipo_ferias = self.instance.tipo_ferias
+            data_criacao = datetime.combine(self.instance.data_criacao, time(0, 0))
         else:
             intervalos = json.loads(attrs.get('intervalos'))
             tipo_ferias = attrs.get('tipo_ferias')
+            data_criacao = datetime.combine(date.today(), time(0, 0))
         for chave, valor in intervalos.items():
             intervalos[chave] = datetime.strptime(valor, '%d/%m/%Y')
-        data_hoje = datetime.combine(date.today(), time(0, 0))
+
+        if intervalos['data_inicial_1'] - data_criacao < timedelta(days=30):
+            raise ValidationError('Só é possivel solicitar férias com data inicial daqui 30 dias')
 
         if tipo_ferias == 'INT':
             validador_ferias_integral(
-                intervalos['data_inicial_1'], intervalos['data_final_1'],
-                data_hoje
-            )
+                intervalos['data_inicial_1'], intervalos['data_final_1'])
         elif tipo_ferias == 'VEN':
             validador_ferias_venda(
                 intervalos['data_inicial_1'], intervalos['data_final_1'],

@@ -31,7 +31,7 @@ urlpatterns = [
     path('accounts/password_change/', ChangePasswordView.as_view(), name='password_change'),
     path('accounts/password_reset/', ResetPasswordView.as_view(), name='password_reset'),
     path('accounts/password_reset_confirm/<uidb64>/<token>/', PasswordTokenCheckAPI.as_view(), name='password_reset_confirm'),
-    path('accounts/password_reset_complete/', SetNewPasswordAPIView.as_view(), name='password_reset_complete'),
+    path('accounts/password_reset_complete/<uidb64>/<token>/', SetNewPasswordAPIView.as_view(), name='password_reset_complete'),
     path('api-auth/', include('rest_framework.urls',
                               namespace='rest_framework')),
     path('api_schema', get_schema_view(

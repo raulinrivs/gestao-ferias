@@ -3,6 +3,7 @@ from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import redirect
 # from django.urls import reverse
 from django.utils.encoding import force_bytes, \
     smart_str, DjangoUnicodeDecodeError
@@ -39,20 +40,18 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         setores = user.setores.all()
-        self.queryset.filter(solicitante=user)
-        if setores:
-            for setor in setores:
-                if setor.recursos_humanos and user.gestor:
-                    return super().get_queryset()
-                elif setor.recursos_humanos:
-                    return self.queryset.exclude(solicitante=user)
-                elif user.gestor:
-                    return self.queryset.filter(solicitante__setores=setor)
-                else:
-                    return self.queryset.filter(solicitante=user)
+        if len(setores) > 0:
+            if setores.filter(recursos_humanos=True).exists() and user.gestor:
+                return self.queryset
+            elif setores.filter(recursos_humanos=True):
+                return self.queryset.exclude(solicitante=user)
+            elif user.gestor:
+                return self.queryset.filter(solicitante__setores__in=setores)
+            else:
+                return self.queryset.filter(solicitante=user)
         else:
-            raise Exception("Usuário não está vinculado a nenhum setor")
-        return super().get_queryset()
+            raise PermissionError('Usuário não está vinculado a nenhum setor')
+        
 
     def perform_create(self, serializer):
         tempo_servico = (
@@ -61,18 +60,17 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
         )
         user = self.request.user
         setores = user.setores.all()
-        ferias_concluidas = self.queryset.filter(status='CON', solicitante=user).count()
+        solicitacoes_user = Solicitacao.objects.filter(solicitante=user)
+        ferias_concluidas = solicitacoes_user.count()
         tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
 
         # Validação de Solicitação em aberto
-        if self.queryset.filter(
-            solicitante=user, status__in=['CRI', 'VGE', 'DEF']
-        ).exists():
+        if solicitacoes_user.filter(status__in=['CRI', 'VGE', 'DEF']).exists():
             raise ValidationError('Você já possui uma solicitação em aberto')
 
         # Validação de Contingente
         for setor in setores:
-            solicitacoes = self.queryset.filter(
+            solicitacoes = solicitacoes_user.filter(
                 solicitante__setores=setor,
                 status='DEF'
             )
@@ -100,6 +98,9 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
         message = f'Solicitação : {solicitacao}'
         email_from = settings.EMAIL_HOST_USER
         recipient_list = [self.request.user.email]
+        gestores = User.objects.filter(gestor=True, setores__in=setores)
+        for gestor in gestores:
+            recipient_list.append(gestor.email)
         send_mail(subject, message, email_from, recipient_list)
         return Response(solicitacao, status=status.HTTP_201_CREATED)
 
@@ -181,7 +182,7 @@ class FirstLoginView(generics.GenericAPIView):
                 status=status.HTTP_200_OK
             )
         else:
-            return Response(data=serializer.errors, status=status.HTTP_403_FORBIDDEN)
+            raise ValidationError(serializer.error_messages)
 
 
 class ChangePasswordView(generics.UpdateAPIView):
@@ -192,10 +193,12 @@ class ChangePasswordView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            if self.request.user.check_password(
+            if request.user.check_password(
                 serializer.validated_data['old_password']
             ):
-                self.request.user.set_password(serializer.data.get("new_password"))
+                request.user.set_password(serializer.data.get("new_password"))
+                request.user.save()
+                request.session.flush()
                 response = {
                     'status': 'success',
                     'code': status.HTTP_200_OK,
@@ -203,7 +206,9 @@ class ChangePasswordView(generics.UpdateAPIView):
                     'data': []
                 }
                 return Response(response)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                raise ValidationError("Senha incorreta!")
+        return ValidationError(serializer.error_messages)
 
 
 class ResetPasswordView(generics.GenericAPIView):
@@ -228,6 +233,10 @@ class ResetPasswordView(generics.GenericAPIView):
                 recipient_list = [user.email]
                 send_mail(subject, message, email_from, recipient_list)
                 return Response(status=status.HTTP_200_OK)
+            else:
+                raise ValidationError('Usuário não existente')
+        else:
+            raise ValidationError(serializer.error_messages)
 
 
 class PasswordTokenCheckAPI(generics.GenericAPIView):
@@ -244,7 +253,7 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
                 'token': token
             }, status=status.HTTP_200_OK)
         except DjangoUnicodeDecodeError as e:
-            print(e)
+            raise ValidationError(e)
 
 
 class SetNewPasswordAPIView(generics.GenericAPIView):

@@ -2,18 +2,13 @@ from datetime import datetime, timedelta
 from django.forms import ValidationError
 
 
-def validador_ferias_integral(inicial: datetime, final: datetime, hoje: datetime):
-    print(f'Periodo: {final - inicial}')
-    print(f'Dias até inicio: {inicial - hoje}')
+def validador_ferias_integral(inicial: datetime, final: datetime):
     if final - inicial != timedelta(days=30):
         raise ValidationError('O intervalo deve possuir 30 dias')
-    if inicial - hoje < timedelta(days=30):
-        raise ValidationError('Só é possivel solicitar férias com data inicial daqui 30 dias')
 
 
 def validador_ferias_venda(
     inicial: datetime, final: datetime, inicial_venda: datetime, final_venda: datetime):
-    print(final - inicial + final_venda - inicial_venda)
     if final - inicial + final_venda - inicial_venda != timedelta(days=30):
         raise ValidationError('O intervalo deve possuir 30 dias')
     #Ferias -> Venda
@@ -40,7 +35,6 @@ def validador_ferias_venda(
 
 def validador_ferias_parcial(inicial_1: datetime, final_1: datetime, 
     inicial_2: datetime, final_2: datetime, inicial_3: datetime, final_3: datetime):
-    print(final_1 - inicial_1, final_2 - inicial_2, final_3 - inicial_3)
     if final_1 - inicial_1 + final_2 - inicial_2 + final_3 - inicial_3 != timedelta(days=30):
         raise ValidationError('O intervalo deve possuir 30 dias')
     if not final_1 - inicial_1 >= timedelta(days=5) and \

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'rest_framework_swagger',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -171,7 +172,8 @@ EMAIL_HOST_USER = 'mr.mraulino@gmail.com'
 LOGIN_REDIRECT_URL = '/dashboard'
 
 REST_FRAMEWORK = {
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication'

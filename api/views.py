@@ -36,6 +36,7 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['status']
 
     def get_queryset(self):
         user = self.request.user
@@ -222,11 +223,9 @@ class ResetPasswordView(generics.GenericAPIView):
             if user:
                 uidb64 = urlsafe_b64encode(force_bytes(user.id))
                 token = PasswordResetTokenGenerator().make_token(user)
-                relative_link = reverse(
-                    'password_reset_confirm',
-                    kwargs={'uidb64': smart_str(uidb64), 'token': token})
-                current_site = get_current_site(request=request).domain
-                absolute_url = f'http://{current_site}{relative_link}'
+                current_site = 'localhost:8080'
+                absolute_url = f'http://{current_site}/accounts/' + \
+                    f'password_reset_confirm/{smart_str(uidb64)}/{token}/'
                 subject = 'Reset de senha'
                 message = absolute_url
                 email_from = settings.EMAIL_HOST_USER

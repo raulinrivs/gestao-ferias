@@ -92,13 +92,18 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         request = self.context.get('request')
 
+        instance.status = validated_data.get('status', instance.status)
+        instance.data_criacao = validated_data.get('data_criacao', instance.data_criacao)
+        instance.intervalos = validated_data.get('intervalos', instance.intervalos)
+        instance.tipo_ferias = validated_data.get('tipo_ferias', instance.tipo_ferias)
+
         subject = 'Solicitação de ferias alterada'
         email_from = settings.EMAIL_HOST_USER
         recipient_list = [request.user.email]
+        message = f'Solicitação : {instance}'
 
-        status = validated_data.get('status')
         # Envio de email para Gestor
-        if status == 'VGE' or status == 'RGE':
+        if instance.status == 'VGE' or instance.status == 'RGE':
             if request.user.gestor:
                 users_rh = User.objects.filter(gestor=False, setores__recursos_humanos=True)
                 for user in users_rh:
@@ -107,7 +112,7 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
                 raise ValidationError('Voce não possui permissão para alterar a solicitação.')
         
         # Envio de email para RH
-        elif status == 'DEF' or status == 'RRH':
+        elif instance.status == 'DEF' or instance.status == 'RRH':
             if request.user.setores.filter(recursos_humanos=True).exist():
                 user_gestores = User.objects.filter(gestor=True, setores__in=instance.solicitante.setores.all())
                 for user in user_gestores:
@@ -115,9 +120,7 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
             else:
                 raise ValidationError('Voce não possui permissão para alterar a solicitação.')
         
-        instance.status = status
         instance.save()
-        message = f'Solicitação : {instance}'
 
         send_mail(subject, message, email_from, recipient_list)
         return instance

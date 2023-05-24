@@ -4,7 +4,6 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import redirect
-# from django.urls import reverse
 from django.utils.encoding import force_bytes, \
     smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -203,8 +202,7 @@ class ChangePasswordView(generics.UpdateAPIView):
                 response = {
                     'status': 'success',
                     'code': status.HTTP_200_OK,
-                    'message': 'Password updated successfully',
-                    'data': []
+                    'message': 'Senha atualizada com sucesso.',
                 }
                 return Response(response)
             else:
@@ -231,9 +229,9 @@ class ResetPasswordView(generics.GenericAPIView):
                 email_from = settings.EMAIL_HOST_USER
                 recipient_list = [user.email]
                 send_mail(subject, message, email_from, recipient_list)
-                return Response(status=status.HTTP_200_OK)
+                return Response(status=status.HTTP_200_OK, message='Email enviado com sucesso.')
             else:
-                raise ValidationError('Usuário não existente')
+                raise ValidationError('Usuário não existente.')
         else:
             raise ValidationError(serializer.error_messages)
 
@@ -246,11 +244,12 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
             id = smart_str(urlsafe_b64decode(uidb64))
             user = User.objects.get(id=id)
             if not PasswordResetTokenGenerator().check_token(user, token):
-                return Response(status=status.HTTP_401_UNAUTHORIZED)
-            return Response({
-                'uid64': uidb64,
-                'token': token
-            }, status=status.HTTP_200_OK)
+                return Response(status=status.HTTP_401_UNAUTHORIZED,
+                                message='Token inválido.'
+                                )
+            return Response({ 'uid64': uidb64, 'token': token}, 
+                            status=status.HTTP_200_OK,
+                            message='Token válido.')
         except DjangoUnicodeDecodeError as e:
             raise ValidationError(e)
 
@@ -304,11 +303,11 @@ class LogoutAPIViewSet(views.APIView):
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return Response({'detail': 'You\'re not logged in.'},
+            return Response({'detail': 'Você já está logado.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         logout(request)
-        return Response({'detail': 'Successfully logged out.'},
+        return Response({'detail': 'Usuário logado com sucesso.'},
                         status=status.HTTP_200_OK)
 
 

@@ -1,6 +1,28 @@
 version: "3.9"
 
 services:
+  web:
+    build: .
+    command: sh -c "python manage.py makemigrations &&
+                    python manage.py migrate &&
+                    python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/home/app/api_ferias
+    environment:
+      DEBUG: True
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      EMAIL_HOST_USER: mr.mraulino@gmail.com
+      EMAIL_HOST_PASSWORD: owgbhhffddeladgs
+      DB_HOST: db
+      DB_NAME: gestao-ferias
+      DB_USER: postgres
+      DB_PASS: postgres
+    depends_on:
+      - db
+      - redis
+
   db:
     image: postgres
     restart: always
@@ -8,23 +30,55 @@ services:
       - "5432"
     ports:
       - "5432:5432"
-    volumes:
-      - postgresql-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: gestao-ferias
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: localhost
+    volumes: 
+      - db:/var/lib/postgresql/data
 
-  web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/code
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      DB_HOST: db
+      DB_NAME: gestao-ferias
+      DB_USER: postgres
+      DB_PASS: postgres
+
+  redis:
+    image: redis:alpine
     ports:
-      - "8000:8000"
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A config worker -l info
+    volumes:
+      - .:/home/app/api_ferias
+    environment:
+      DEBUG: 1
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      DJANGO_ALLOWED_HOSTS: localhost 127.0.0.1 [::1]
+      DB_HOST: db
+      DB_NAME: gestao-ferias
+      DB_USER: postgres
+      DB_PASS: postgres
     depends_on:
-      - db
+      - redis
+      - web
+
+  celery-beat:
+    build: .
+    command: celery -A config beat -l info
+    volumes:
+      - .:/home/app/api_ferias
+    environment:
+      DEBUG: 1
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      DJANGO_ALLOWED_HOSTS: localhost 127.0.0.1 [::1]
+      DB_HOST: db
+      DB_NAME: gestao-ferias
+      DB_USER: postgres
+      DB_PASS: postgres
+    depends_on:
+      - redis
+      - web
 
 volumes:
-  postgresql-data:
+  db:
+    driver: local

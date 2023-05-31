@@ -9,11 +9,10 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
 from pathlib import Path
 import os
 import sys
-
+from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,29 +21,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$kc*gju+*=$2o2xjpkrm-cm*a4cjmx(*nezb3mc-8xiisz$dw*'
+# SECRET_KEY = '+2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd'
+SECRET_KEY = '+2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+# DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
     'corsheaders',
     'ponto',
     'api',
     'rest_framework',
     'rest_framework_swagger',
     'django_filters',
+    'django_celery_beat',
+    'django_celery_results',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE = [
@@ -63,10 +66,11 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
+        'DIRS': 
+        [
             os.path.join(BASE_DIR, 'templates'), 
             os.path.join(BASE_DIR, 'static')
-            ],
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -86,33 +90,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 # Container Docker
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": 'gestao-ferias',
-#         'USER': 'postgres',
-#         'PASSWORD': 'postgres',
-#         'HOST': 'db',
-#         'PORT': '5432',
-#     }
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'TEST': {
-                'MIRROR': 'test'
-        }
-    },
-    'test': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'test_db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        'HOST': os.environ.get('DB_HOST'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASS'),
+        'PORT': '5432',
     }
 }
 
-if 'test' in sys.argv:
-    DATABASES['default'] = {'ENGINE': 'django.db.backends.sqlite3'}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#         'TEST': {
+#                 'MIRROR': 'test'
+#         }
+#     },
+#     'test': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'test_db.sqlite3',
+#     }
+# }
+
+# if 'test' in sys.argv:
+#     DATABASES['default'] = {'ENGINE': 'django.db.backends.sqlite3'}
 
 
 # Password validation
@@ -149,6 +153,15 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
+# Celery Configuration Options
+CELERY_TIMEZONE = "America/Sao_Paulo"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+# CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+# CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -166,10 +179,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'mr.mraulino@gmail.com'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
 
-LOGIN_REDIRECT_URL = '/dashboard'
+LOGIN_REDIRECT_URL = '/api/v1/docs'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
@@ -178,4 +192,18 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication'
     ]
+}
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+CELERY_BEAT_SCHEDULE = {
+    'verificar-solicitacoes-def': {
+        'task': 'ponto.tasks.solicitacoesDeferidas',
+        'schedule': crontab(minute='*/1')
+    },
+    # 'add-every-30-seconds': {
+    #     'task': 'config.celery.add',
+    #     'schedule': 30.0,
+    #     'args': (16, 16)
+    # },
 }

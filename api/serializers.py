@@ -20,6 +20,7 @@ class SetorSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     setores = SetorSerializer(many=True, read_only=True)
+
     class Meta:
         model = User
         fields = '__all__'
@@ -29,14 +30,6 @@ class UserDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'first_name', 'last_name', 'matricula', 'data_admissao')
-
-
-'''
-class CreateUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('first_name', 'last_name', 'matricula', 'email', 'groups')
-'''
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -109,7 +102,7 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
                 for user in users_rh:
                     recipient_list.append(user.email)
             else:
-                raise ValidationError('Voce não possui permissão para alterar a solicitação.')
+                raise PermissionError('Voce não possui permissão para alterar a solicitação.')
         
         # Envio de email para RH
         elif instance.status == 'DEF' or instance.status == 'RRH':
@@ -118,7 +111,7 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
                 for user in user_gestores:
                     recipient_list.append(user.email)
             else:
-                raise ValidationError('Voce não possui permissão para alterar a solicitação.')
+                raise PermissionError('Voce não possui permissão para alterar a solicitação.')
         
         instance.save()
 

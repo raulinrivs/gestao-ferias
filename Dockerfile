@@ -1,7 +1,7 @@
 # base image  
 FROM python:3.8   
 # setup environment variable  
-ENV DockerHOME=/home/app/api_ponto  
+ENV DockerHOME=/home/app/api_ferias  
 
 # set work directory  
 RUN mkdir -p $DockerHOME  

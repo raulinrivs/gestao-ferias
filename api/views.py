@@ -1,9 +1,7 @@
 # Django Imports
 from django.core.mail import send_mail
-from django.contrib.sites.shortcuts import get_current_site
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import redirect
 from django.utils.encoding import force_bytes, \
     smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -11,7 +9,6 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework import viewsets, generics, permissions, \
     authentication, mixins, status, views
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.serializers import ValidationError
 # API app Imports
 from api.serializers import CSRFTokenSerializer, FirstLoginSerializer, \
@@ -123,6 +120,9 @@ class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def destroy(self, request, pk):
+        return 'a'
+
 
 def password_generator():
     senha = ''
@@ -189,6 +189,7 @@ class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
     model = User
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['patch']
 
     def update(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -247,7 +248,7 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
                 return Response(status=status.HTTP_401_UNAUTHORIZED,
                                 message='Token inválido.'
                                 )
-            return Response({ 'uid64': uidb64, 'token': token}, 
+            return Response({'uid64': uidb64, 'token': token}, 
                             status=status.HTTP_200_OK,
                             message='Token válido.')
         except DjangoUnicodeDecodeError as e:
@@ -303,11 +304,11 @@ class LogoutAPIViewSet(views.APIView):
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return Response({'detail': 'Você já está logado.'},
+            return Response({'detail': 'Você não está logado.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         logout(request)
-        return Response({'detail': 'Usuário logado com sucesso.'},
+        return Response({'detail': 'Usuário deslogado com sucesso.'},
                         status=status.HTTP_200_OK)
 
 

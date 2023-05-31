@@ -100,6 +100,7 @@ class Solicitacao(models.Model):
                 ('RGE', 'Recusada pelo Gestor'),
                 ('DEF', 'Deferido'),
                 ('RRH', 'Recusada pelo RH'),
+                ('USU', 'Em usufruto'),
                 ('CON', 'Concluida'),
     ]
     status = models.CharField(choices=STATUS, max_length=3)

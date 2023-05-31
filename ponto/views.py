@@ -98,14 +98,12 @@
 #         )
 #         form.send_email(self.request.user)
 #         return super().form_valid(form)
-        
+
 
 # class SolicitacaoDetailView(LoginRequiredMixin, DetailView):
 #     model = Solicitacao
 #     template_name = 'detalhe_solicitacao.html'
-    
+
 #     def get_context_data(self, **kwargs):
 #         context = super().get_context_data(**kwargs)
 #         return context
-
-    

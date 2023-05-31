@@ -1,6 +1,5 @@
-import json
 from django.test import TestCase
-from ponto.models import CustomUser as User, Group as Setor
+from ponto.models import CustomUser as User
 
 
 class ModelsTest(TestCase):
@@ -16,7 +15,7 @@ class ModelsTest(TestCase):
         )
 
     def testCreateUser(self):
-        user_1 = User.objects.create_user(
+        user_1 = User.objects.create_user(  # noqa: F841 
             matricula='178934',
             password='root12345',
             email='mr.mraulino@gmail.com',
@@ -32,7 +31,7 @@ class ModelsTest(TestCase):
             matricula='123456', 
             first_name='Raulino', 
             last_name='Mateus'
-            )
+        )
         user = User.objects.get(matricula='123456')
         self.assertEqual(user.id, self.user_test.id)
         self.assertEqual(user.first_name, 'Raulino')

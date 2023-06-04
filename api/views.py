@@ -32,7 +32,7 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['status']
+    filterset_fields = ['status', 'solicitante']
 
     def get_queryset(self):
         user = self.request.user

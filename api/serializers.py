@@ -106,7 +106,7 @@ class SolicitacaoSerializer(serializers.ModelSerializer):
         
         # Envio de email para RH
         elif instance.status == 'DEF' or instance.status == 'RRH':
-            if request.user.setores.filter(recursos_humanos=True).exist():
+            if request.user.setores.filter(recursos_humanos=True).exists():
                 user_gestores = User.objects.filter(gestor=True, setores__in=instance.solicitante.setores.all())
                 for user in user_gestores:
                     recipient_list.append(user.email)

@@ -35,10 +35,10 @@ services:
 
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
-      DB_HOST: db
-      DB_NAME: gestao-ferias
-      DB_USER: postgres
-      DB_PASS: postgres
+      POSTGRES_HOST: db
+      POSTGRES_DB: gestao-ferias
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
 
   redis:
     image: redis:alpine

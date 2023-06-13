@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'rest_framework_swagger',
+    'drf_yasg',
     'django_filters',
     'django_celery_beat',
     'django_celery_results',
@@ -184,6 +185,8 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
 
 LOGIN_REDIRECT_URL = '/api/v1/docs'
+LOGIN_URL = '/api/v1/accounts/login/'
+LOGOUT_URL = '/api/v1/accounts/logout/'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
@@ -193,6 +196,16 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication'
     ]
 }
+
+SWAGGER_SETTINGS = {
+    'LOGIN_URL': 'rest_framework:login',
+    'LOGOUT_URL': 'rest_framework:logout',
+    'USE_SESSION_AUTH': True,
+    'DOC_EXPANSION': 'list',
+    'APIS_SORTER': 'alpha',
+    'SECURITY_DEFINITIONS': None,
+}
+
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 

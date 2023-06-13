@@ -10,6 +10,7 @@ from rest_framework import viewsets, generics, permissions, \
     authentication, mixins, status, views
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from rest_framework.schemas import get_schema_view
 # API app Imports
 from api.serializers import CSRFTokenSerializer, FirstLoginSerializer, \
     UserSerializer, SolicitacaoSerializer, SetorSerializer, \
@@ -32,16 +33,17 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitacaoSerializer
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['status', 'solicitante']
+    # filterset_fields = ['status', 'solicitante']
+    filterset_fields = {'status': ["in", "exact"],
+                        'solicitante': ["in", "exact"],
+                        }
 
     def get_queryset(self):
         user = self.request.user
         setores = user.setores.all()
         if len(setores) > 0:
-            if setores.filter(recursos_humanos=True).exists() and user.gestor:
+            if setores.filter(recursos_humanos=True):
                 return self.queryset
-            elif setores.filter(recursos_humanos=True):
-                return self.queryset.exclude(solicitante=user)
             elif user.gestor:
                 return self.queryset.filter(solicitante__setores__in=setores)
             else:
@@ -62,14 +64,14 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
         tempo_servico_result = (tempo_servico.days - (ferias_concluidas * 365))
 
         # Validação de Solicitação em aberto
-        if solicitacoes_user.filter(status__in=['CRI', 'VGE', 'DEF']).exists():
+        if solicitacoes_user.filter(status__in=('CRI', 'VGE', 'DEF', 'USU')).exists():
             raise ValidationError('Você já possui uma solicitação em aberto')
 
         # Validação de Contingente
         for setor in setores:
             solicitacoes = solicitacoes_user.filter(
                 solicitante__setores=setor,
-                status='DEF'
+                status__in=('DEF', 'USU')
             )
             if solicitacoes.count() >= setor.contingente:
                 raise ValidationError('O contingente do setor já foi atingido, ' +
@@ -198,6 +200,7 @@ class ChangePasswordView(generics.UpdateAPIView):
                 serializer.validated_data['old_password']
             ):
                 request.user.set_password(serializer.data.get("new_password"))
+                request.user.data_senha = date.today()
                 request.user.save()
                 request.session.flush()
                 response = {
@@ -230,7 +233,11 @@ class ResetPasswordView(generics.GenericAPIView):
                 email_from = settings.EMAIL_HOST_USER
                 recipient_list = [user.email]
                 send_mail(subject, message, email_from, recipient_list)
-                return Response(status=status.HTTP_200_OK, message='Email enviado com sucesso.')
+                return Response({
+                    'status': 'success',
+                    'code': status.HTTP_200_OK,
+                    'message': 'Email encaminhado com sucesso.',
+                })
             else:
                 raise ValidationError('Usuário não existente.')
         else:
@@ -259,6 +266,8 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
     serializer_class = SetNewPasswordSerializer
 
     def patch(self, request):
+        request.user.data_senha = date.today()
+        request.user.save()
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(status=status.HTTP_200_OK)

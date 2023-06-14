@@ -68,10 +68,10 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
     new_password_confirm = serializers.CharField(required=True)
 
-    def validate_matching_password(self, value):
+    def validate(self, value):
         if value['new_password'] != value['new_password_confirm']:
             raise serializers.ValidationError(
-                {"old_password": "Old password is not correct"})
+                {"new_password_confirm": "As novas senhas não são iguais."})
         return value
 
 

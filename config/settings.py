@@ -28,7 +28,7 @@ SECRET_KEY = '+2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd'
 DEBUG = True
 # DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', '.vercel.app']
 
 
 # Application definition

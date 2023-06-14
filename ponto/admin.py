@@ -15,10 +15,11 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('first_name', 'last_name', 'email')
         }),
         ('Permissions', {
-            'fields': (
+            'fields': 
+            (
                 'is_active', 'is_staff', 'is_superuser',
                 'setores', 'user_permissions', 'gestor'
-                )
+            )
         }),
         ('Important dates', {
             'fields': (
@@ -38,7 +39,6 @@ class CustomUserAdmin(UserAdmin):
     filter_horizontal = (
         "setores",
         "user_permissions",
-        "gestor"
     )
 
 

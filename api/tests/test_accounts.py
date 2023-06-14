@@ -1,7 +1,6 @@
-import json
-from django.test import TestCase, Client
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
-from ponto.models import CustomUser as User, Group as Setor
+from ponto.models import CustomUser as User
 
 
 class AccountsTest(TestCase):
@@ -25,7 +24,7 @@ class AccountsTest(TestCase):
                 'username': '197623',
                 'password': 'root12345',
             }
-            )
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.cookies['csrftoken'])
         self.assertIsNotNone(response.cookies['sessionid'])

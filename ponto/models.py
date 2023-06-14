@@ -1,6 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from django.db import models
-from django.utils.timezone import now
+from django.utils import timezone
 from django.contrib.auth.models import Permission
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
@@ -16,17 +16,19 @@ class SetorManager(models.Manager):
 class Setor(models.Model):
     class Meta:
         verbose_name_plural = "Setores"
-        
+
     name = models.CharField(_("name"), max_length=150, unique=True)
     contingente = models.IntegerField(blank=True, null=True)
+    recursos_humanos = models.BooleanField(default=False)
     permissions = models.ManyToManyField(
         Permission,
         verbose_name=_("permissions"),
         blank=True,
     )
-    
+
     def __str__(self) -> str:
         return f'{self.name}'
+
 
 class UserManager(BaseUserManager):
 
@@ -35,7 +37,6 @@ class UserManager(BaseUserManager):
     def _create_user(self, matricula, password, **extra_fields):
         if not matricula:
             raise ValueError('The given matricula must be set')
-        matricula = matricula.lower()
         user = self.model(matricula=matricula, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -61,12 +62,13 @@ class UserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     matricula = models.CharField(
         max_length=15, verbose_name='Matricula', unique=True)
+    email = models.EmailField(unique=True)
     data_admissao = models.DateField(
-        verbose_name='Data de admissão', default=now())
-    gestor = models.ManyToManyField(Setor, blank=True)
+        verbose_name='Data de admissão', default=timezone.now)
+    gestor = models.BooleanField(verbose_name='Gestor', default=False)
     data_senha = models.DateField(
         verbose_name='Data da ultima troca de senha',
-        default=now())
+        default=timezone.now)
     setores = models.ManyToManyField(
         Setor,
         verbose_name=_("setores"),
@@ -77,9 +79,8 @@ class CustomUser(AbstractUser):
 
     USERNAME_FIELD = 'matricula'
     REQUIRED_FIELDS = []
-    
+
     username = None
-    groups = None
 
     objects = UserManager()
 
@@ -99,6 +100,7 @@ class Solicitacao(models.Model):
                 ('RGE', 'Recusada pelo Gestor'),
                 ('DEF', 'Deferido'),
                 ('RRH', 'Recusada pelo RH'),
+                ('USU', 'Em usufruto'),
                 ('CON', 'Concluida'),
     ]
     status = models.CharField(choices=STATUS, max_length=3)
@@ -107,7 +109,7 @@ class Solicitacao(models.Model):
     solicitante = models.ForeignKey(
                 CustomUser, on_delete=models.DO_NOTHING)
     data_criacao = models.DateField(
-        verbose_name='Data de criação', default=now())
+        verbose_name='Data de criação', default=timezone.now)
 
     def __str__(self) -> str:
         return f'{self.tipo_ferias} - {self.status} - {self.solicitante}'

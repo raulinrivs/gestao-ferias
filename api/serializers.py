@@ -183,6 +183,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
                 print('falho')
 
             user.set_password(password)
+            user.data_senha = date.today()
             user.save()
             return user
         except DjangoUnicodeDecodeError as e:

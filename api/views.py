@@ -266,8 +266,6 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
     serializer_class = SetNewPasswordSerializer
 
     def patch(self, request):
-        request.user.data_senha = date.today()
-        request.user.save()
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(status=status.HTTP_200_OK)

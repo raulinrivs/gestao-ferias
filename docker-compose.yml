@@ -13,7 +13,7 @@ services:
     environment:
       DEBUG: 1
       SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$$w$$-b^uh1@^gd
-      CORS_ORIGIN_WHITELIST: '*'
+      CORS_ORIGIN_WHITELIST: https://sunset-3ezk.onrender.com
       EMAIL_HOST_USER: mr.mraulino@gmail.com
       EMAIL_HOST_PASSWORD: owgbhhffddeladgs
       DB_HOST: db

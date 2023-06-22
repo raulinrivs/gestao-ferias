@@ -21,14 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = '+2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd'
-SECRET_KEY = '+2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# DEBUG = True
+DEBUG = os.environ.get('DEBUG')
 
-ALLOWED_HOSTS = ['*', '.vercel.app']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -145,7 +143,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ORIGIN_WHITELIST = (
-    'http://localhost:8080', # ou qualquer outro endereço do seu frontend
+    os.environ.get('CORS_ORIGIN_WHITELIST', 'http://localhost:8080'), # ou qualquer outro endereço do seu frontend
 )
 
 # Internationalization

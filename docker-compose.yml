@@ -11,8 +11,9 @@ services:
     volumes:
       - .:/home/app/api_ferias
     environment:
-      DEBUG: True
-      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      DEBUG: 1
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$$w$$-b^uh1@^gd
+      CORS_ORIGIN_WHITELIST: '*'
       EMAIL_HOST_USER: mr.mraulino@gmail.com
       EMAIL_HOST_PASSWORD: owgbhhffddeladgs
       DB_HOST: db
@@ -52,7 +53,7 @@ services:
       - .:/home/app/api_ferias
     environment:
       DEBUG: 1
-      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$$w$$-b^uh1@^gd
       DJANGO_ALLOWED_HOSTS: localhost 127.0.0.1 [::1]
       DB_HOST: db
       DB_NAME: gestao-ferias
@@ -69,7 +70,7 @@ services:
       - .:/home/app/api_ferias
     environment:
       DEBUG: 1
-      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$w$-b^uh1@^gd
+      SECRET_KEY: +2=t27uh^o#er52k=w8g&(4dw@syd=mr&tpba$$w$$-b^uh1@^gd
       DJANGO_ALLOWED_HOSTS: localhost 127.0.0.1 [::1]
       DB_HOST: db
       DB_NAME: gestao-ferias
